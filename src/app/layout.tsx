@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import MedicalDisclaimer from '@/components/MedicalDisclaimer'
+import NavTestToggle from '@/components/NavTestToggle'
+import { TEST_MODE_ENABLED } from '@/lib/config'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,7 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="text-2xl">🧬</span>
             <span>DNA<span className="text-indigo-400">Match</span></span>
           </a>
-          <span className="text-slate-500 text-xs">Educational use only — not a medical device</span>
+          <div className="flex items-center gap-4">
+            <a href="/help" className="text-slate-400 hover:text-white text-sm transition-colors">Help</a>
+            <span className="text-slate-700">|</span>
+            <span className="text-slate-600 text-xs hidden sm:block">Educational use only</span>
+            {TEST_MODE_ENABLED && <NavTestToggle />}
+          </div>
         </nav>
         <main>{children}</main>
       </body>
