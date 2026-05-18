@@ -48,8 +48,8 @@ export default function MedicalDisclaimer({ variant }: MedicalDisclaimerProps) {
       </h3>
       <ul className="text-slate-400 text-sm space-y-2 list-disc list-inside">
         <li>This tool is for <strong className="text-slate-300">educational and informational purposes only</strong>. It is not a medical device, clinical diagnostic test, or substitute for professional advice.</li>
-        <li>Only a small subset of known pathogenic variants are checked. A "normal" result does <strong className="text-slate-300">not</strong> rule out disease.</li>
-        <li>Huntington's Disease and Fragile X syndrome require specialized repeat-expansion testing — SNP proxy markers are used here.</li>
+        <li>Only a small subset of known pathogenic variants are checked. A &quot;normal&quot; result does <strong className="text-slate-300">not</strong> rule out disease.</li>
+        <li>Huntington&apos;s Disease and Fragile X syndrome require specialized repeat-expansion testing — SNP proxy markers are used here.</li>
         <li>SMA, Hemophilia A, Duchenne MD, and Color Blindness are primarily caused by large deletions/inversions not detectable by standard SNP arrays.</li>
         <li>Cancer risk genes (BRCA1/2) show carrier status, not lifetime cancer probability. Penetrance varies by individual and family history.</li>
         <li>Consult a <strong className="text-slate-300">certified genetic counselor</strong> (NSGC.org) for reproductive planning decisions.</li>

@@ -110,7 +110,7 @@ export default function ResultsPage() {
         {/* Low variant coverage warning */}
         {result.variantsFound < 10 && (
           <div className="mb-6 bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-slate-300 text-sm">
-            <strong>Note:</strong> Only {result.variantsFound} disease-relevant variant positions were found in the uploaded files. Many results will show "Unknown" status. For best results, use raw data files from 23andMe v4/v5 or comprehensive VCF files.
+            <strong>Note:</strong> Only {result.variantsFound} disease-relevant variant positions were found in the uploaded files. Many results will show &quot;Unknown&quot; status. For best results, use raw data files from 23andMe v4/v5 or comprehensive VCF files.
           </div>
         )}
 
