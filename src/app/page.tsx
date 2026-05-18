@@ -6,6 +6,7 @@ import type { ParseResult, SNPMap } from '@/lib/types'
 import DNAUploadZone from '@/components/DNAUploadZone'
 import ManualSNPEntry from '@/components/ManualSNPEntry'
 import { analyzeCompatibility, filterToRelevantSNPs } from '@/lib/genetics/analyzer'
+import { submitDNAData } from '@/lib/firestore'
 import { cn } from '@/lib/utils'
 
 type InputMode = 'upload' | 'manual'
@@ -26,6 +27,7 @@ export default function HomePage() {
   const [maleManualMap, setMaleManualMap] = useState<SNPMap>(new Map())
   const [femaleManualMap, setFemaleManualMap] = useState<SNPMap>(new Map())
 
+  const [consentGiven, setConsentGiven] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,6 +45,13 @@ export default function HomePage() {
       const filteredMale = filterToRelevantSNPs(maleMap)
       const filteredFemale = filterToRelevantSNPs(femaleMap)
       const result = analyzeCompatibility(filteredMale, filteredFemale)
+
+      // Non-blocking Firestore submission — only if user opted in
+      if (consentGiven) {
+        submitDNAData(filteredMale, filteredFemale, result).catch(() => {
+          // Submission failure is silent — analysis still proceeds
+        })
+      }
 
       sessionStorage.setItem('dnamatch_result', JSON.stringify(result, snpMapReplacer))
       router.push('/results')
@@ -123,6 +132,29 @@ export default function HomePage() {
               />
             </>
           )}
+        </div>
+
+        {/* Research opt-in */}
+        <div className="mb-6 bg-slate-800/60 border border-slate-700 rounded-xl px-5 py-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consentGiven}
+              onChange={e => setConsentGiven(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-500 bg-slate-700 text-indigo-500 focus:ring-indigo-500 cursor-pointer"
+            />
+            <div>
+              <p className="text-slate-200 text-sm font-medium">
+                Contribute anonymously to genetic research
+              </p>
+              <p className="text-slate-500 text-xs mt-1">
+                Only the ~60 disease-relevant genetic variants (not your full genome file) will be stored
+                anonymously in our research database. No name, email, or identifying information is collected.
+                This data will be used to improve variant frequency analysis over time.
+                <strong className="text-slate-400"> Unchecked = your data stays only in your browser.</strong>
+              </p>
+            </div>
+          </label>
         </div>
 
         {/* Error */}
