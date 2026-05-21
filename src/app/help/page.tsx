@@ -21,7 +21,7 @@ const NAV_LINKS = [
   { href: '#how-analysis-works', label: 'How Analysis Works' },
   { href: '#reading-results', label: 'Reading Results' },
   { href: '#data-privacy', label: 'Data & Privacy' },
-  { href: '#technical', label: 'Technical Architecture' },
+  { href: '#technical', label: 'Technical Stack' },
   { href: '#faq', label: 'FAQ' },
   ...(TEST_MODE_ENABLED ? [{ href: '#test-mode', label: '🧪 Test Mode Guide' }] : []),
 ]
@@ -289,7 +289,7 @@ export default function HelpPage() {
           </Section>
 
           {/* ── Technical Architecture ── */}
-          <Section id="technical" title="Technical Architecture">
+          <Section id="technical" title="Technical Stack">
             <p>
               DNAMatch is a fully static web application — all genetic analysis runs in your browser. There is no backend server processing your data.
             </p>
