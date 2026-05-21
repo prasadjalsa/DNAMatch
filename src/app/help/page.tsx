@@ -21,6 +21,7 @@ const NAV_LINKS = [
   { href: '#how-analysis-works', label: 'How Analysis Works' },
   { href: '#reading-results', label: 'Reading Results' },
   { href: '#data-privacy', label: 'Data & Privacy' },
+  { href: '#technical', label: 'Technical Architecture' },
   { href: '#faq', label: 'FAQ' },
   ...(TEST_MODE_ENABLED ? [{ href: '#test-mode', label: '🧪 Test Mode Guide' }] : []),
 ]
@@ -285,6 +286,179 @@ export default function HelpPage() {
               All analysis computation happens in your browser. Your full DNA file is parsed locally and the raw file contents are discarded after the relevant SNPs are extracted.
               No full genome data ever leaves your device.
             </p>
+          </Section>
+
+          {/* ── Technical Architecture ── */}
+          <Section id="technical" title="Technical Architecture">
+            <p>
+              DNAMatch is a fully static web application — all genetic analysis runs in your browser. There is no backend server processing your data.
+            </p>
+
+            {/* Stack */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 text-sm">
+              <h3 className="text-white font-semibold mb-4">Tech Stack</h3>
+              <ul className="space-y-2.5">
+                {[
+                  { label: 'Frontend', value: 'Next.js 14 (App Router) + React + TypeScript + Tailwind CSS' },
+                  { label: 'Charts & UI', value: 'Recharts (RadialBarChart score gauge, PieChart per disease card)' },
+                  { label: 'Genetic Analysis', value: 'Custom Mendelian engine — pure TypeScript, runs entirely client-side' },
+                  { label: 'Hosting', value: 'Firebase Hosting — Spark free tier, static export (no server)' },
+                  { label: 'Database', value: 'Firestore — write-only anonymous research submissions (opt-in)' },
+                  { label: 'CI/CD', value: 'GitHub Actions — auto-deploy to Firebase on push to main' },
+                  { label: 'DNA Parsers', value: '23andMe TSV parser + VCF parser with coordinate → rsID fallback map' },
+                ].map(({ label, value }) => (
+                  <li key={label} className="flex gap-2 text-sm">
+                    <span className="text-white font-semibold shrink-0">{label}:</span>
+                    <span className="text-slate-400">{value}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* File structure */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm">
+              <h3 className="text-white font-semibold mb-3">Source File Structure</h3>
+              <pre className="text-slate-400 text-[11px] leading-5 overflow-x-auto">{`src/
+  app/
+    layout.tsx              ← root layout, nav, disclaimer banner
+    page.tsx                ← landing: file upload / manual entry / test mode
+    globals.css
+    results/
+      page.tsx              ← analysis dashboard: score + disease cards
+    help/
+      page.tsx              ← this documentation page
+  components/
+    DNAUploadZone.tsx       ← drag-drop, auto-detects 23andMe vs VCF
+    ManualSNPEntry.tsx      ← table for manual rsid + genotype entry
+    CompatibilityScore.tsx  ← half-circle radial gauge (Recharts)
+    DiseaseRiskCard.tsx     ← per-disease: parent badges, pie chart, text
+    RiskSummaryTable.tsx    ← sortable table of all results
+    MedicalDisclaimer.tsx   ← banner + footer variants
+    NavTestToggle.tsx       ← purple 🧪 toggle in nav bar
+    TestModePanel.tsx       ← Select/Browse tabs, 128 profiles
+  lib/
+    types.ts                ← all shared TypeScript interfaces
+    utils.ts                ← cn() helper (clsx + tailwind-merge)
+    config.ts               ← TEST_MODE_ENABLED feature flag
+    firebase.ts             ← Firebase app init (NEXT_PUBLIC_ env vars)
+    firestore.ts            ← submitDNAData() — opt-in research writes
+    parsers/
+      parse23andMe.ts       ← TSV → SNPMap (indels, no-calls, Windows \\r\\n)
+      parseVCF.ts           ← VCF → SNPMap (GT decode, coord→rsid fallback)
+    genetics/
+      mendelian.ts          ← pure Mendelian functions per inheritance pattern
+      analyzer.ts           ← orchestrator: two SNPMaps → AnalysisResult
+      scoring.ts            ← severity-weighted compatibility score 0–100
+  data/
+    diseaseDatabase.ts      ← 22 diseases: rsIDs, alleles, severity, copy
+    snpMetadata.ts          ← chromosome + position for TSV generation
+    testProfiles.ts         ← 128 synthetic profiles, profileToTSV()`}</pre>
+            </div>
+
+            {/* Data flow */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm">
+              <h3 className="text-white font-semibold mb-3">Data Flow</h3>
+              <ol className="space-y-2 text-slate-400 text-xs list-decimal list-inside">
+                <li><strong className="text-slate-300">Parse</strong> — uploaded file is read client-side by <code className="bg-slate-700 px-1 rounded">parse23andMe.ts</code> or <code className="bg-slate-700 px-1 rounded">parseVCF.ts</code>, producing a <code className="bg-slate-700 px-1 rounded">SNPMap</code> (Map of rsID → genotype string).</li>
+                <li><strong className="text-slate-300">Filter</strong> — <code className="bg-slate-700 px-1 rounded">filterToRelevantSNPs()</code> reduces the full map (~650 K entries in a 23andMe file) to only the ~60 disease-relevant rsIDs.</li>
+                <li><strong className="text-slate-300">Analyze</strong> — <code className="bg-slate-700 px-1 rounded">analyzeCompatibility(male, female)</code> iterates over all 22 diseases, calls the appropriate Mendelian function, and computes a per-disease <code className="bg-slate-700 px-1 rounded">OffspringRisk</code>.</li>
+                <li><strong className="text-slate-300">Score</strong> — <code className="bg-slate-700 px-1 rounded">calculateScore()</code> applies severity weights and returns a 0–100 compatibility score.</li>
+                <li><strong className="text-slate-300">Store (opt-in)</strong> — if consent is given, the filtered SNPs + result are written to Firestore <code className="bg-slate-700 px-1 rounded">submissions</code> collection.</li>
+                <li><strong className="text-slate-300">Navigate</strong> — the <code className="bg-slate-700 px-1 rounded">AnalysisResult</code> is serialized to <code className="bg-slate-700 px-1 rounded">sessionStorage</code> and the router navigates to <code className="bg-slate-700 px-1 rounded">/results</code>.</li>
+                <li><strong className="text-slate-300">Render</strong> — the results page reads from <code className="bg-slate-700 px-1 rounded">sessionStorage</code> and renders the score gauge, summary table, and individual disease cards.</li>
+              </ol>
+            </div>
+
+            {/* Mendelian types */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm">
+              <h3 className="text-white font-semibold mb-3">Inheritance Patterns Implemented</h3>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-slate-500 border-b border-slate-700">
+                    <th className="text-left py-2 pr-4">Pattern</th>
+                    <th className="text-left py-2 pr-4">Function</th>
+                    <th className="text-left py-2">Diseases</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/30 text-slate-400">
+                  {[
+                    ['Autosomal Recessive', 'arOffspringRisk()', 'CF, Sickle Cell, Tay-Sachs, PKU, Gaucher, SMA, Wilson\'s, HFE, Beta-Thal'],
+                    ['Autosomal Dominant', 'adOffspringRisk()', 'Huntington\'s, FH, BRCA1, BRCA2, Factor V, Marfan, Prothrombin'],
+                    ['X-Linked Recessive', 'xlrOffspringRisk()', 'Hemophilia A, Hemophilia B, Duchenne MD, Color Blindness'],
+                    ['X-Linked Dominant', 'xldOffspringRisk()', 'Fragile X (proxy)'],
+                    ['Complex / multi-locus', 'complexMthfrRisk()', 'MTHFR (C677T + A1298C compound het)'],
+                  ].map(([pattern, fn, diseases]) => (
+                    <tr key={pattern}>
+                      <td className="py-2 pr-4 text-slate-300 font-medium whitespace-nowrap">{pattern}</td>
+                      <td className="py-2 pr-4 font-mono text-indigo-400 whitespace-nowrap">{fn}</td>
+                      <td className="py-2 text-slate-500">{diseases}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Scoring */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm">
+              <h3 className="text-white font-semibold mb-3">Scoring Formula</h3>
+              <pre className="text-slate-400 text-[11px] leading-5 overflow-x-auto bg-slate-900 rounded p-3">{`severity weights:
+  lethal   → 25  (Huntington's, CF, Tay-Sachs, DMD)
+  severe   → 15  (Sickle Cell, Beta-Thal, SMA, BRCA1/2, Hemophilia A/B)
+  moderate →  8  (PKU, Gaucher, Wilson's, Marfan, Fragile X, FH)
+  mild     →  3  (HFE, Factor V, Prothrombin, Color Blindness, MTHFR)
+
+score = 100 - Σ( weight × offspringRisk.affected )
+score = clamp(score, 0, 100)
+
+categories:
+  85 – 100  → Excellent
+  70 –  84  → Good
+  50 –  69  → Moderate
+   0 –  49  → Elevated`}</pre>
+            </div>
+
+            {/* Deployment */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm">
+              <h3 className="text-white font-semibold mb-3">Deployment Pipeline</h3>
+              <ol className="space-y-2 text-slate-400 text-xs list-decimal list-inside">
+                <li>Developer pushes to the <code className="bg-slate-700 px-1 rounded">main</code> branch on GitHub.</li>
+                <li>GitHub Actions workflow (<code className="bg-slate-700 px-1 rounded">.github/workflows/firebase-deploy.yml</code>) triggers automatically.</li>
+                <li>Node 20 is installed; <code className="bg-slate-700 px-1 rounded">npm install</code> installs dependencies.</li>
+                <li><code className="bg-slate-700 px-1 rounded">npm run build</code> runs <code className="bg-slate-700 px-1 rounded">next build</code> with <code className="bg-slate-700 px-1 rounded">output: &apos;export&apos;</code> — produces a fully static <code className="bg-slate-700 px-1 rounded">out/</code> directory. Firebase config is injected via <code className="bg-slate-700 px-1 rounded">NEXT_PUBLIC_FIREBASE_*</code> GitHub Secrets.</li>
+                <li><code className="bg-slate-700 px-1 rounded">FirebaseExtended/action-hosting-deploy@v0</code> deploys the <code className="bg-slate-700 px-1 rounded">out/</code> directory to Firebase Hosting project <code className="bg-slate-700 px-1 rounded">dnamatch-2c4c8</code>.</li>
+              </ol>
+              <div className="mt-3 bg-slate-900 rounded p-3">
+                <p className="text-slate-500 text-[11px] mb-1 font-semibold uppercase tracking-wider">Required GitHub Secrets</p>
+                <div className="grid grid-cols-2 gap-1">
+                  {[
+                    'FIREBASE_SERVICE_ACCOUNT',
+                    'NEXT_PUBLIC_FIREBASE_API_KEY',
+                    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+                    'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+                    'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+                    'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+                    'NEXT_PUBLIC_FIREBASE_APP_ID',
+                  ].map(s => (
+                    <code key={s} className="text-[10px] text-indigo-300 bg-slate-800 px-1.5 py-0.5 rounded">{s}</code>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Firestore rules */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm">
+              <h3 className="text-white font-semibold mb-3">Firestore Security Rules</h3>
+              <p className="text-slate-400 text-xs mb-2">The database is write-only from the client. No user can read or delete another submission. Only the Firebase Admin console can access the data.</p>
+              <pre className="text-slate-400 text-[11px] leading-5 bg-slate-900 rounded p-3 overflow-x-auto">{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /submissions/{docId} {
+      allow create: if true;          // opt-in anonymous submissions
+      allow read, update, delete: if false;
+    }
+  }
+}`}</pre>
+            </div>
           </Section>
 
           {/* ── FAQ ── */}
